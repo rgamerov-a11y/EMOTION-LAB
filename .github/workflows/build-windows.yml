@@ -1,0 +1,24 @@
+name: Build Windows VST3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (JUCE 9.0.5 fetched by CMake)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+      - name: Build VST3 Release
+        run: cmake --build build --config Release --target EmotionLab_VST3 --parallel 4
+      - name: Package
+        shell: pwsh
+        run: |
+          $bundle = Get-ChildItem build -Recurse -Directory -Filter 'EMOTION LAB.vst3' | Select-Object -First 1
+          if (-not $bundle) { throw "VST3 bundle not found" }
+          Compress-Archive -Path $bundle.FullName -DestinationPath EMOTION_LAB_Windows_x64_VST3.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EMOTION_LAB_Windows_x64_VST3
+          path: EMOTION_LAB_Windows_x64_VST3.zip
